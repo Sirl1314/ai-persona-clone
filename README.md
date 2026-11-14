@@ -30,6 +30,18 @@ A personal chat model that talks like me. Fine-tuned from Qwen2.5-7B-Instruct wi
 
 最终交付：一个 4.7GB 的 ollama 模型 `wechat-v38`，接在飞书机器人里实际跑。
 
+```mermaid
+flowchart LR
+    A[原始聊天记录] --> B[清洗 / 脱敏 / 多轮重建]
+    B --> C[ShareGPT 9,815 条]
+    C --> D[QLoRA 7B 训练<br/>rank 64, all-linear]
+    D --> E[bf16 合并]
+    E --> F[f16 GGUF]
+    F --> G[Q4_K_M<br/>4.68GB]
+    G --> H[ollama 本地]
+    H --> I[飞书机器人]
+```
+
 ## 2. 数据
 
 原始数据是四个会话的聊天记录（私聊 + 群聊），清洗后得到 9,815 条 ShareGPT 格式样本。
