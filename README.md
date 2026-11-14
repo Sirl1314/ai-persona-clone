@@ -239,20 +239,28 @@ wechat-persona-lora/
 
 ## 8. 复现
 
+训练没有手写 Trainer，hyperparameter 全部落在 yaml 里，CLI 负责执行。
+
 ```bash
-# 1. 训练（需要一张 24GB 以上显卡）
-llamafactory-cli train configs/train_qlora.yaml
+# 0. 环境
+pip install "llamafactory[metrics]>=0.9.5"
 
-# 2. 合并
-bash scripts/merge_lora.sh
+# 1. 训练（一张 24GB 以上显卡；7B + 4bit）
+bash scripts/train.sh
+# 等价于: llamafactory-cli train configs/train_qlora.yaml
 
-# 3. 量化（注意必须是 f16 直转，不要经过 q8）
+# 2. 合并 adapter 到基座
+BASE_MODEL=Qwen/Qwen2.5-7B-Instruct ADAPTER=saves/qwen25-7b-lora bash scripts/merge_lora.sh
+
+# 3. 量化（必须 f16 直转，不要经过 q8）
 bash scripts/convert_quantize.sh
 
 # 4. 本地运行
 ollama create mypersona -f Modelfile
 ollama run mypersona
 ```
+
+`configs/dataset_info.json` 是 LLaMA-Factory 的数据集注册表，把 `demo_train.json` 映射成 `persona_train` 这个名字，yaml 里的 `dataset: persona_train` 才找得到。
 
 ## 9. 数据与隐私
 

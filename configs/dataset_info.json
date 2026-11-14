@@ -1,0 +1,15 @@
+{
+  "persona_train": {
+    "file_name": "demo_train.json",
+    "formatting": "sharegpt",
+    "columns": {
+      "messages": "conversations"
+    },
+    "tags": {
+      "role": "from",
+      "content": "value",
+      "user": "human",
+      "assistant": "gpt"
+    }
+  }
+}
