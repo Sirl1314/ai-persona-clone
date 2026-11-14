@@ -1,0 +1,41 @@
+# --- models and weights (never commit) ---
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+models/
+merged*/
+
+# --- raw data: private, never commit ---
+dataset/
+data/
+wechat_decrypted/
+wechat_fresh/
+*.jsonl
+*.csv
+
+# --- secrets ---
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+.ssh_tmp/
+账号密码*
+wechat_keys
+wxdump.cmd
+*.reg
+
+# --- python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+tmp*

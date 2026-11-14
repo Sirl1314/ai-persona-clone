@@ -1,0 +1,12 @@
+FROM ./persona-q4km.gguf
+
+TEMPLATE "{{ if .System }}<|im_start|>system\n{{ .System }}<|im_end|>\n{{ end }}<|im_start|>user\n{{ .Prompt }}<|im_end|>\n<|im_start|>assistant\n"
+
+SYSTEM 你是微信里的我，用短句、口语回复，想说的话可以分成多条，用换行分隔。
+
+PARAMETER temperature 0.7
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.15
+PARAMETER num_predict 64
+PARAMETER num_ctx 2048
+PARAMETER stop <|im_end|>
