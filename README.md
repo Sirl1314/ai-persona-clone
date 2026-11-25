@@ -1,6 +1,13 @@
 # AI Persona Clone
 
-A self-hosted persona agent. A local LLM fine-tuned on my chat history, plus a plugin pipeline that reads images, picks stickers, searches the web, keeps reminders, and filters every outgoing reply.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Base](https://img.shields.io/badge/Base-Qwen2.5--7B--Instruct-7c3aed)
+![Method](https://img.shields.io/badge/Method-QLoRA%20r64-0ea5e9)
+![GGUF](https://img.shields.io/badge/GGUF-Q4__K__M%204.7GB-16a34a)
+![Runtime](https://img.shields.io/badge/Runtime-Ollama%20%2B%20AstrBot-orange)
+![License](https://img.shields.io/badge/License-MIT-yellow)
+
+A self-hosted persona agent. A local LLM fine-tuned on my chat history, plus a plugin pipeline that reads images, picks stickers, searches the web, keeps reminders, and filters every outgoing reply. Personal chatbot · local LLM · LoRA fine-tuning · GGUF · Ollama · AstrBot.
 
 一个自托管的个人 AI 分身智能体。本地微调模型负责说话，插件流水线负责看、查、记、拦。从原始聊天记录到能聊天的人，整条链路都在这里。
 
@@ -16,9 +23,58 @@ A self-hosted persona agent. A local LLM fine-tuned on my chat history, plus a p
 | 人工盲测 | 不出错 91%，精准像人 78% |
 | 频道 | 飞书（线上）／企微／微信 oc（通道已接，默认关闭） |
 
+**目录**
+
+[效果样例](#一效果样例) ｜ [系统构成](#二系统构成) ｜ [能力全景](#三能力全景) ｜ [架构](#四架构) ｜ [处理路径](#五一次对话的处理路径) ｜ [模型层](#六模型层) ｜ [智能体层](#七智能体层) ｜ [部署](#八部署) ｜ [仓库结构](#九仓库结构) ｜ [复现](#十复现) ｜ [踩坑](#十一踩坑结论) ｜ [现状](#十二当前效果与短板) ｜ [数据边界](#十三数据边界)
+
 ---
 
-## 一、系统构成
+## 一、效果样例
+
+以下对话为虚构样例，用于展示输出风格。人名、事件、场景不对应任何真人。
+
+**日常**
+
+> 在干嘛呢
+> 躺着看看天花板
+> 有点烦
+> 你最近忙什么
+
+**被调侃时顶回去**
+
+> 就你这分数还想着上岸呢
+> ？
+> 不是说考得好的人少嘛
+> 那为什么不能是我
+> 而且我还有卷子
+> 我能背
+> 我就有戏
+
+**情绪低落**
+
+> 今天好烦啊，一堆破事
+> 烦就先停一分钟
+> 你先告诉我哪件最急
+> 其他人放一边
+
+**接好消息**
+
+> 实习转正啦
+> 稳了
+> 这步走对了
+> 工资变样没
+
+**常识不被风格吃掉**
+
+> 中国的首都是哪里
+> 北京
+
+> 1+1 等于几
+> 2
+
+完整样例见 [`samples/demo_dialog.md`](samples/demo_dialog.md)，9 类场景共 18 组问答。
+
+## 二、系统构成
 
 三层，各管一段，靠消息链路串起来。
 
@@ -28,7 +84,7 @@ A self-hosted persona agent. A local LLM fine-tuned on my chat history, plus a p
 
 **部署层**：Ollama 托管模型，AstrBot 接平台、分发消息，systemd 常驻，崩溃 5 秒后自动重启。
 
-## 二、能力全景
+## 三、能力全景
 
 | 能力 | 实现方式 | 层 |
 |---|---|---|
@@ -54,7 +110,7 @@ A self-hosted persona agent. A local LLM fine-tuned on my chat history, plus a p
 | 小图卡片 | 飞书表情图转小图，不撑成大图 | 智能体 |
 | 多平台 | 飞书 socket／企微长连／微信 oc，同一套逻辑 | 部署 |
 
-## 三、架构
+## 四、架构
 
 ```mermaid
 flowchart TB
@@ -86,7 +142,7 @@ flowchart TB
     C4 --> P
 ```
 
-## 四、一次对话的处理路径
+## 五、一次对话的处理路径
 
 1. 消息进来，按平台解析成事件。群聊里图片和文字常是两条独立事件，图片那条先按会话缓存引用，base64 自带数据，带 TTL，不等临时链接。
 2. 前置直答层先扫一遍。"现在几点""明天几号""你多高""在吗""你是谁"命中就直接回，不唤醒模型。
@@ -99,9 +155,9 @@ flowchart TB
 9. 表情包插件读对话情绪，从图库挑一张贴合的，挂到这条回复后面一起发。
 10. 发出。本地模型连续失败 5 次，落云端模型兜底。
 
-## 五、模型层
+## 六、模型层
 
-### 5.1 数据
+### 6.1 数据
 
 原始素材是四段会话（私聊与群聊），导出后 27 万条消息。最终训练集 9,815 条，真人记录 7,551 条，合成 2,264 条。
 
@@ -122,7 +178,7 @@ flowchart TB
 
 风格统计用来定标：本人回复中位 11 字，p90 31 字，超 80 字占 0.7%，约 70% 带换行，约 15% 会反问。这组数字是所有长度类判定的基准。
 
-### 5.2 清洗
+### 6.2 清洗
 
 十轮。
 
@@ -147,7 +203,7 @@ flowchart TB
 
 答非所问全部由人逐条判。字面重合规则精确率 6%，外部模型判 0 的里面六成是误杀。17,906 条逐条读"对方末句 → 我的回复"，判出 113 条真错，占 0.63%。
 
-### 5.3 训练
+### 6.3 训练
 
 ```yaml
 base: Qwen/Qwen2.5-7B-Instruct
@@ -174,7 +230,7 @@ gradient_checkpointing: true
 
 7B 与 3B 的选择按显存和效果定：10GB 显存加 80GB 内存放得下 7B QLoRA；7B 的 Q4 权重约 4.4GB 能整块进显存；3B 在长句、指令遵循、多轮承接上明显弱。
 
-### 5.4 量化
+### 6.4 量化
 
 正确路径：
 
@@ -192,9 +248,9 @@ bf16 merged (15.5GB)
 
 量化完跑两句验收：`1+1` 答 2，`首都在哪` 答北京。答得含糊是文件坏了。
 
-### 5.5 评测
+### 6.5 评测
 
-风格化对话不能按知识问答测。
+风格化对话不能按知识问答测。完整记录见 [`docs/evaluation.md`](docs/evaluation.md)。
 
 **第一版：贪心解码。** `do_sample=False` 跑 312 条，17 条重复退化，一条把"算了"重复 47 次。改成采样（temperature 0.7 / top_p 0.9 / rep 1.15 / no_repeat_ngram 3）重跑同一批：
 
@@ -231,7 +287,7 @@ bf16 merged (15.5GB)
 
 **过采样实验。** 互怼玩梗 2 倍升采样，训练集 9,815 → 13,472，1.5 epoch。train loss 更低（2.318 vs 2.614），效果全面变差：碎片开头 14.3% → 18.5%，"稳了"在 720 条里出现 30 条，图片维度 9/10 → 5/10，出现 `'url'` 异常 token，人工抽样 61%。模型学的是"不管问啥先甩一句口头禅"的开头模板。
 
-### 5.6 推理增强：best-of-4
+### 6.6 推理增强：best-of-4
 
 同一输入采 4 条候选，规则打分选最高：
 
@@ -248,9 +304,9 @@ prompt ≥10 字且零重叠 -4
 
 规则从训练分布反推：长度区间对应中位 11、p90 31；开头黑名单是采样高频且通常没接住话；2-gram 重叠判断是否真的回应了对方。720 条上比单次采样提升约 3 个点。
 
-## 六、智能体层
+## 七、智能体层
 
-### 6.1 双模型分工
+### 7.1 双模型分工
 
 | 角色 | 模型 | 职责 |
 |---|---|---|
@@ -259,7 +315,7 @@ prompt ≥10 字且零重叠 -4
 
 微调后 `tool_calls` 恒为 null，工具全部由插件在钩子里代码路由。
 
-### 6.2 插件分工（11 个）
+### 7.2 插件分工（11 个）
 
 | 插件 | 职责 | 关键机制 |
 |---|---|---|
@@ -278,7 +334,7 @@ prompt ≥10 字且零重叠 -4
 
 上面 12 行对应 11 个插件，"搜索与提醒"一个插件承担联网与提醒两项。
 
-### 6.3 搜索路由
+### 7.3 搜索路由
 
 两级：
 
@@ -291,7 +347,7 @@ prompt ≥10 字且零重叠 -4
 
 搜索结果不直甩原文，交云端模型用本人口吻改写。另有一层正则清理，防 `<tool_calls>` 调用语法被当文字发出。
 
-### 6.4 提醒链路
+### 7.4 提醒链路
 
 提醒不依赖模型理解，走正则解析："提醒我""记得叫我""到点喊我"等触发词命中，剥掉时间词与指令词，剩下是内容。时间解析支持"3 分钟后""明天早上 8 点""下午五点"。
 
@@ -303,7 +359,7 @@ prompt ≥10 字且零重叠 -4
 
 写操作按发送者隔离，每人上限 5 条。取消提醒时本地账本与日历日程一起删。
 
-### 6.5 记忆与上下文
+### 7.5 记忆与上下文
 
 - 短期窗口 12 轮，超 8 轮截断，保留最近 30%。
 - 旧对话交云端模型压成不超过 100 字摘要。指令：只记未解决的事、关键事实、态度倾向；不记已聊完的话题，不引原话，不写"之前聊过"。
@@ -312,7 +368,7 @@ prompt ≥10 字且零重叠 -4
 
 窗口给到 24 轮时模型开始复读旧话题，缩到 8 轮又丢上下文。最终 12 轮加精简摘要，复读消失且承接不断。
 
-### 6.6 出站守卫
+### 7.6 出站守卫
 
 两层，防流式绕过第一层：
 
@@ -323,15 +379,15 @@ prompt ≥10 字且零重叠 -4
 
 敏感提示词长度有讲究：每轮注入 112 字负面清单，模型变呆变机械。缩到 18 字"别主动开黄腔，对方没提就别往性上扯"后自然度回来。
 
-### 6.7 平台适配
+### 7.7 平台适配
 
 飞书线上主力，socket 长连。企微和微信 oc 通道已接好，默认关闭。换平台只换适配层。
 
 飞书两个坑：群聊把图片和文字拆成两条事件，纯文本模型只能看到 `[Image]` 占位；表情图默认渲染成大图。前者用群聊图片缓存插件补，后者用小图卡片插件转。
 
-## 七、部署
+## 八、部署
 
-### 7.1 模型服务
+### 8.1 模型服务
 
 Ollama 托管，systemd 自启。`Modelfile`：
 
@@ -349,13 +405,13 @@ TEMPLATE 显式声明对话格式。某些路径会把 `<|im_start|>` 当普通�
 
 训练数据里没有 system 字段，Ollama 对无 system 的对话会注入"You are Qwen, created by Alibaba Cloud..."，训练时从未见过，属于分布外。模板判空不注入，或显式给一句短 system，选一种。
 
-### 7.2 常驻
+### 8.2 常驻
 
 AstrBot 由 systemd 托管，崩溃 5 秒后重启。工作目录、Python 环境、日志固定。面板端口默认对外，可改成只监听本地。
 
 客户端 system 留空或只留一句。客户端传了 system，模型文件里的 SYSTEM 会被忽略，框架自带的几百字人设提示是训练分布外的强干扰。温度、top_p、max_tokens 与模型侧一致。上下文不超过训练时的 2048。
 
-### 7.3 双环境实测
+### 8.3 双环境实测
 
 | 环境 | 显存 | 策略 | 表现 |
 |---|---|---|---|
@@ -364,13 +420,15 @@ AstrBot 由 systemd 托管，崩溃 5 秒后重启。工作目录、Python 环�
 
 4GB 环境用于验证显存下限。
 
-## 八、仓库结构
+## 九、仓库结构
 
 开源部分是模型层与评测方法。
 
 ```
 ai-persona-clone/
 ├── README.md
+├── requirements.txt              # 训练与评测依赖
+├── LICENSE                       # MIT
 ├── Modelfile                     # 本地推理参数
 ├── configs/
 │   ├── train_qlora.yaml          # LLaMA-Factory 训练配置
@@ -386,7 +444,7 @@ ai-persona-clone/
 ├── samples/
 │   ├── sample_train.json         # 10 条最小格式示例
 │   ├── demo_train.json           # 51 条合成对话，可跑通全流程
-│   └── demo_dialog.md            # 脱敏对话样例
+│   └── demo_dialog.md            # 9 类场景 18 组脱敏样例
 └── docs/
     ├── evaluation.md             # 评测方法论
     └── troubleshooting.md        # 量化/模板/system 踩坑
@@ -394,14 +452,14 @@ ai-persona-clone/
 
 - `build_dataset.py` 是骨架示例，姓名映射字典留空。真实清洗链（分片合并、轮次对齐、逐条语义审计、冲突裁决）不在仓库里。
 - `demo_train.json` 51 条合成对话，覆盖 9 个维度，用于验证代码链路。
-- 11 个插件的代码、图库、平台配置、真实数据、模型权重不在本仓库。第六节是设计说明。
-- 自建流程：导出聊天记录 → 清洗 → 打标 → QLoRA → 合并量化 → Ollama → 按第六节补插件。数据量 8,000 条以上效果稳定，少于 3,000 条容易过拟合到具体事件。
+- 11 个插件的代码、图库、平台配置、真实数据、模型权重不在本仓库。第七节是设计说明。
+- 自建流程：导出聊天记录 → 清洗 → 打标 → QLoRA → 合并量化 → Ollama → 按第七节补插件。数据量 8,000 条以上效果稳定，少于 3,000 条容易过拟合到具体事件。
 
-## 九、复现
+## 十、复现
 
 ```bash
 # 0. 环境
-pip install "llamafactory[metrics]>=0.9.5"
+pip install -r requirements.txt
 
 # 1. 训练（一张 24GB 以上显卡，7B + 4bit）
 bash scripts/train.sh
@@ -430,9 +488,9 @@ python src/best_of_n.py --adapter saves/qwen25-7b-lora \
 
 `configs/dataset_info.json` 把 `demo_train.json` 注册成 `persona_train`，yaml 里的 `dataset: persona_train` 才能解析。`train.sh` 会把注册表复制到数据集目录。
 
-## 十、踩坑结论
+## 十一、踩坑结论
 
-详见 `docs/troubleshooting.md`。
+详见 [`docs/troubleshooting.md`](docs/troubleshooting.md)。
 
 1. q8_0 二次压到 Q4_K_M 会毁权重，用 f16 直转。
 2. 本地工具不认 `<|im_start|>` 为特殊 token，显式写 TEMPLATE。
@@ -445,7 +503,7 @@ python src/best_of_n.py --adapter saves/qwen25-7b-lora \
 9. 大文件跨机传输不开并发，单流 + 断点续传 + MD5 校验。
 10. 改配置先停服务，运行中改会被内存配置覆盖。
 
-## 十一、当前效果与短板
+## 十二、当前效果与短板
 
 已跑通：风格模型、量化部署、飞书接入、看图、表情包、联网、提醒、记忆、出站守卫，线上常驻。
 
@@ -456,13 +514,17 @@ python src/best_of_n.py --adapter saves/qwen25-7b-lora \
 - 训练窗口 2048，放 4096 需要更多显存。
 - 搜索判断依赖云端中转接口，单次约 5 秒，闲聊回合有几秒延迟。
 
-## 十二、数据边界
+## 十三、数据边界
 
 仓库不含真实聊天记录、模型权重、插件源码、平台凭据。
 
 - `sample_train.json` 10 条、`demo_train.json` 51 条，全部虚构，人名事件场景不对应任何真人。
 - 真实数据 9,815 条涉及他人隐私，不公开、不分享、不上传。
 - `.gitignore` 排除模型权重、原始数据库、密钥、身份令牌、平台配置。
+
+## 致谢
+
+基座 [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)，训练用 [LLaMA-Factory](https://github.com/hiyouga/LLaMA-Factory)，量化用 [llama.cpp](https://github.com/ggml-org/llama.cpp)，推理用 [Ollama](https://ollama.com)，机器人框架用 [AstrBot](https://github.com/AstrBotDevs/AstrBot)。
 
 ## License
 
