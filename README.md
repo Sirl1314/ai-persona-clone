@@ -432,9 +432,11 @@ PARAMETER temperature 0.7
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.15
 PARAMETER num_predict 64
-PARAMETER num_ctx 2048
+PARAMETER num_ctx 16384
 PARAMETER stop <|im_end|>
 ```
+
+推理侧窗口开到 16384。训练 cutoff_len 是 2048，只管模型见过的对话长度；部署端单独把 num_ctx 与 AstrBot 的 max_context_tokens 一起提到 16384，多轮长会话不会中途被截断。16K 的 KV 缓存约 0.9GB，加上 4.7GB 权重，10GB 卡还剩余量。
 
 TEMPLATE 显式声明对话格式。某些路径会把 `<|im_start|>` 当普通文字塞进 prompt，模型看到变形的对话结构，输出成"?????"或乱码。问一句常识，答对说明格式走通。
 
@@ -444,16 +446,16 @@ TEMPLATE 显式声明对话格式。某些路径会把 `<|im_start|>` 当普通�
 
 AstrBot 由 systemd 托管，崩溃 5 秒后重启。工作目录、Python 环境、日志固定。面板端口默认对外，可改成只监听本地。
 
-客户端 system 留空或只留一句。客户端传了 system，模型文件里的 SYSTEM 会被忽略，框架自带的几百字人设提示是训练分布外的强干扰。温度、top_p、max_tokens 与模型侧一致。上下文不超过训练时的 2048。
+客户端 system 留空或只留一句。客户端传了 system，模型文件里的 SYSTEM 会被忽略，框架自带的几百字人设提示是训练分布外的强干扰。温度、top_p、max_tokens 与模型侧一致。客户端窗口与新机 provider 的 max_context_tokens 都设 16384，和模型侧 num_ctx 对齐。
 
 ### 硬件
 
 | 环境 | 显存 | 策略 | 表现 |
 |---|---|---|---|
-| RTX 3080 | 10GB | 全量放显存 | 主力部署，长回复稳定 |
+| RTX 3080 | 10GB | 权重 4.7GB 全量进显存，num_ctx 16384 | 主力部署，16K KV 约 0.9GB，仍有富余 |
 | RTX 3050 Ti Laptop | 4GB | 部分层卸载到 CPU | 约 16 tok/s |
 
-4GB 环境用于验证显存下限。
+4GB 环境用于验证显存下限，16K 上下文在这类卡上放不下，需要压回 4096。
 
 ## 📦 仓库结构
 
@@ -549,7 +551,7 @@ python src/best_of_n.py --adapter saves/qwen25-7b-lora \
 
 - 玩梗 4/10、互怼 5/10。样本量少，玩梗依赖具体语境。
 - 模型先验偏忍让，"被骂直接回怼"提示词压不住。
-- 训练窗口 2048，放 4096 需要更多显存。
+- 训练 cutoff_len 2048，训练样本超长时按尾部截断。
 - 搜索判断依赖云端中转接口，单次约 5 秒，闲聊回合有几秒延迟。
 
 ## 🔒 数据边界

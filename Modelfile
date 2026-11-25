@@ -8,5 +8,5 @@ PARAMETER temperature 0.7
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.15
 PARAMETER num_predict 64
-PARAMETER num_ctx 2048
+PARAMETER num_ctx 16384
 PARAMETER stop <|im_end|>
