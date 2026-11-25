@@ -1,4 +1,4 @@
-# WeChat Persona LoRA
+# AI Persona Clone
 
 A personal chat model that talks like me. Fine-tuned from Qwen2.5-7B-Instruct with QLoRA on 9,815 real conversations. Runs locally on a 4GB laptop GPU as a 4.4GB Q4_K_M GGUF, and on a 10GB lab GPU with full offload.
 
@@ -20,7 +20,7 @@ A personal chat model that talks like me. Fine-tuned from Qwen2.5-7B-Instruct wi
 
 ## 1. 这个项目在做什么
 
-我想要一个能替我回微信的东西。不是那种"您好，我理解您的感受"的客服腔，而是短句、口语、会怼人、会玩梗、被骂了会顶回去的那种。
+我想要一个能替我回话的 AI 分身。不是那种"您好，我理解您的感受"的客服腔，而是短句、口语、会怼人、会玩梗、被骂了会顶回去的那种。
 
 三个约束决定了技术路线：
 
@@ -217,7 +217,7 @@ PARAMETER stop <|im_end|>
 ## 7. 目录结构
 
 ```
-wechat-persona-lora/
+ai-persona-clone/
 ├── README.md
 ├── configs/
 │   └── train_qlora.yaml          # LLaMA-Factory 训练配置
