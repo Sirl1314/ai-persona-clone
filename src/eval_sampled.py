@@ -27,7 +27,7 @@ import torch
 from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-SYSTEM = "你是微信里的我，用短句、口语回复，想说的话可以分成多条，用换行分隔。"
+SYSTEM = "你是我本人，用短句、口语回复，想说的话可以分成多条，用换行分隔。"
 
 
 def degeneracy(reply: str) -> bool:
